@@ -57,7 +57,7 @@ preinstallmsg() { \
 
 adduserandpass() { \
 	# Adds user `$name` with password $pass1.
-	dialog --infobox "Adding user \"$name\"..." 4 50
+	dialog --backtitle "Arch Linux Installation" --infobox "Adding user \"$name\"..." 4 50
 	useradd -m -g wheel -s /usr/bin/fish "$name" >>/var/log/larbs.sh.log 2>&1 ||
 	usermod -a -G wheel "$name" && mkdir -p /home/"$name" && chown "$name":wheel /home/"$name"
 	export repodir="/home/$name/.local/src"; mkdir -p "$repodir"; chown -R "$name":wheel "$(dirname "$repodir")"
@@ -67,11 +67,11 @@ adduserandpass() { \
 refreshkeys() { \
 	case "$(readlink -f /sbin/init)" in
 		*systemd* )
-			dialog --infobox "Refreshing Arch Keyring..." 4 40
+			dialog --backtitle "Arch Linux Installation" --infobox "Refreshing Arch Keyring..." 4 40
 			pacman --noconfirm -S archlinux-keyring >>/var/log/larbs.sh.log 2>&1
 			;;
 		*)
-			dialog --infobox "Enabling Arch Repositories..." 4 40
+			dialog --backtitle "Arch Linux Installation" --infobox "Enabling Arch Repositories..." 4 40
 			pacman --noconfirm --needed -S artix-keyring artix-archlinux-support >>/var/log/larbs.sh.log 2>&1
 			for repo in extra community; do
 				grep -q "^\[$repo\]" /etc/pacman.conf ||
@@ -89,7 +89,7 @@ newperms() { # Set special sudoers settings for install (or after).
 
 manualinstall() { # Installs $1 manually. Used only for AUR helper here.
 	# Should be run after repodir is created and var is set.
-	dialog --infobox "Installing \"$1\", an AUR helper..." 4 50
+	dialog --backtitle "Arch Linux Installation" --infobox "Installing \"$1\", an AUR helper..." 4 50
 	sudo -u "$name" mkdir -p "$repodir/$1"
 	sudo -u "$name" git clone --depth 1 "https://aur.archlinux.org/$1.git" "$repodir/$1" >>/var/log/larbs.sh.log 2>&1 ||
 		{ cd "$repodir/$1" || return 1 ; sudo -u "$name" git pull --force origin master;}
@@ -140,7 +140,7 @@ installationloop() { \
 	done < /tmp/progs.csv ;}
 
 putgitrepo() { # Downloads a gitrepo $1 and places the files in $2 only overwriting conflicts
-	dialog --infobox "Downloading and installing config files..." 4 60
+	dialog --backtitle "Arch Linux Installation" --infobox "Downloading and installing config files..." 4 60
 	[ -z "$3" ] && branch="master" || branch="$repobranch"
 	dir=$(mktemp -d)
 	[ ! -d "$2" ] && mkdir -p "$2"
@@ -173,7 +173,7 @@ fishinstall() { \
 	}
 	
 sshd_configure() {
-	dialog --title "sshd settings" --backtitle "Dan's Nginx Setup" --msgbox "Configuring sshd to disable passwords and require public key authentication." 7 70
+	dialog --backtitle "Arch Linux Installation" --title "sshd settings" --msgbox "Configuring sshd to disable passwords and require public key authentication." 7 70
 	systemctl start sshd.service >>/var/log/larbs.sh.log 2>&1
 	sleep 5 >>/var/log/larbs.sh.log 2>&1
 	systemctl stop sshd.service >>/var/log/larbs.sh.log 2>&1
@@ -187,13 +187,13 @@ sshd_configure() {
 	systemctl start sshd.service >>/var/log/larbs.sh.log 2>&1
 }
 
-systembeepoff() { dialog --infobox "Getting rid of that retarded error beep sound..." 10 50
+systembeepoff() { dialog --backtitle "Arch Linux Installation" --infobox "Getting rid of that retarded error beep sound..." 10 50
 	rmmod pcspkr
 	echo "blacklist pcspkr" > /etc/modprobe.d/nobeep.conf ;}
 
 finalize(){ \
-	dialog --infobox "Preparing welcome message..." 4 50
-	dialog --title "All done!" --msgbox "Congrats! Provided there were no hidden errors, the script completed successfully and all the programs and configuration files should be in place.\\n\\nTo run the new graphical environment, log out and log back in as your new user, then run the command \"startx\" to start the graphical environment (it will start automatically in tty1).\\n\\n.t Dan" 12 80
+	dialog --backtitle "Arch Linux Installation" --infobox "Preparing welcome message..." 4 50
+	dialog --backtitle "Arch Linux Installation" --title "All done!" --msgbox "Congrats! Provided there were no hidden errors, the script completed successfully and all the programs and configuration files should be in place.\\n\\nTo run the new graphical environment, log out and log back in as your new user, then run the command \"startx\" to start the graphical environment (it will start automatically in tty1).\\n\\n.t Dan" 12 80
 	}
 
 ### THE ACTUAL SCRIPT ###

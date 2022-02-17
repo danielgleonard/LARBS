@@ -21,11 +21,12 @@ esac done
 
 ### FUNCTIONS ###
 
-installpkg(){ pacman --noconfirm --needed -S "$1" >/var/log/larbs.sh.log 2>&1 ;}
+installpkg(){ pacman --noconfirm --needed -S "$1" >>/var/log/larbs.sh.log 2>&1 ;}
 
 error() { printf "%s\n" "$1" >&2; exit 1; }
 
 welcomemsg() { \
+	echo "Script started" >/var/log/larbs.sh.log
 	dialog --title "Welcome!" --msgbox "Welcome to Dan's Arch Bootstrapping Script!\\n\\nThis script will automatically install a fully-featured Arch Linux desktop, which I use on my server.\\n\\n-Dan" 10 60
 
 	dialog --colors --title "Important Note!" --yes-label "All ready!" --no-label "Return..." --yesno "Be sure the computer you are using has current pacman updates and refreshed Arch keyrings.\\n\\nIf it does not, the installation of some programs might fail." 8 70
@@ -46,7 +47,7 @@ getuserandpass() { \
 	done ;}
 
 usercheck() { \
-	! { id -u "$name" >/var/log/larbs.sh.log 2>&1; } ||
+	! { id -u "$name" >>/var/log/larbs.sh.log 2>&1; } ||
 	dialog --colors --title "WARNING!" --yes-label "CONTINUE" --no-label "No wait..." --yesno "The user \`$name\` already exists on this system. This script can install for a user already existing, but it will \\Zboverwrite\\Zn any conflicting settings/dotfiles on the user account.\\n\\nThis script will \\Zbnot\\Zn overwrite your user files, documents, videos, etc., so don't worry about that, but only click <CONTINUE> if you don't mind your settings being overwritten.\\n\\nNote also that this script will change $name's password to the one you just gave." 14 70
 	}
 
@@ -57,7 +58,7 @@ preinstallmsg() { \
 adduserandpass() { \
 	# Adds user `$name` with password $pass1.
 	dialog --infobox "Adding user \"$name\"..." 4 50
-	useradd -m -g wheel -s /usr/bin/fish "$name" >/var/log/larbs.sh.log 2>&1 ||
+	useradd -m -g wheel -s /usr/bin/fish "$name" >>/var/log/larbs.sh.log 2>&1 ||
 	usermod -a -G wheel "$name" && mkdir -p /home/"$name" && chown "$name":wheel /home/"$name"
 	export repodir="/home/$name/.local/src"; mkdir -p "$repodir"; chown -R "$name":wheel "$(dirname "$repodir")"
 	echo "$name:$pass1" | chpasswd
@@ -67,17 +68,17 @@ refreshkeys() { \
 	case "$(readlink -f /sbin/init)" in
 		*systemd* )
 			dialog --infobox "Refreshing Arch Keyring..." 4 40
-			pacman --noconfirm -S archlinux-keyring >/var/log/larbs.sh.log 2>&1
+			pacman --noconfirm -S archlinux-keyring >>/var/log/larbs.sh.log 2>&1
 			;;
 		*)
 			dialog --infobox "Enabling Arch Repositories..." 4 40
-			pacman --noconfirm --needed -S artix-keyring artix-archlinux-support >/var/log/larbs.sh.log 2>&1
+			pacman --noconfirm --needed -S artix-keyring artix-archlinux-support >>/var/log/larbs.sh.log 2>&1
 			for repo in extra community; do
 				grep -q "^\[$repo\]" /etc/pacman.conf ||
 					echo "[$repo]
 Include = /etc/pacman.d/mirrorlist-arch" >> /etc/pacman.conf
 			done
-			pacman -Sy >/var/log/larbs.sh.log 2>&1
+			pacman -Sy >>/var/log/larbs.sh.log 2>&1
 			pacman-key --populate archlinux
 			;;
 	esac ;}
@@ -90,10 +91,10 @@ manualinstall() { # Installs $1 manually. Used only for AUR helper here.
 	# Should be run after repodir is created and var is set.
 	dialog --infobox "Installing \"$1\", an AUR helper..." 4 50
 	sudo -u "$name" mkdir -p "$repodir/$1"
-	sudo -u "$name" git clone --depth 1 "https://aur.archlinux.org/$1.git" "$repodir/$1" >/var/log/larbs.sh.log 2>&1 ||
+	sudo -u "$name" git clone --depth 1 "https://aur.archlinux.org/$1.git" "$repodir/$1" >>/var/log/larbs.sh.log 2>&1 ||
 		{ cd "$repodir/$1" || return 1 ; sudo -u "$name" git pull --force origin master;}
 	cd "$repodir/$1"
-	sudo -u "$name" -D "$repodir/$1" makepkg --noconfirm -si >/var/log/larbs.sh.log 2>&1 || return 1
+	sudo -u "$name" -D "$repodir/$1" makepkg --noconfirm -si >>/var/log/larbs.sh.log 2>&1 || return 1
 }
 
 maininstall() { # Installs all needed programs from main repo.
@@ -105,21 +106,21 @@ gitmakeinstall() {
 	progname="$(basename "$1" .git)"
 	dir="$repodir/$progname"
 	dialog --backtitle "Arch Linux Installation" --title "Installing programs manually" --infobox "Installing \`$progname\` ($n of $total) via \`git\` and \`make\`. $(basename "$1") $2" 5 70
-	sudo -u "$name" git clone --depth 1 "$1" "$dir" >/var/log/larbs.sh.log 2>&1 || { cd "$dir" || return 1 ; sudo -u "$name" git pull --force origin master;}
+	sudo -u "$name" git clone --depth 1 "$1" "$dir" >>/var/log/larbs.sh.log 2>&1 || { cd "$dir" || return 1 ; sudo -u "$name" git pull --force origin master;}
 	cd "$dir" || exit 1
-	make >/var/log/larbs.sh.log 2>&1
-	make install >/var/log/larbs.sh.log 2>&1
+	make >>/var/log/larbs.sh.log 2>&1
+	make install >>/var/log/larbs.sh.log 2>&1
 	cd /tmp || return 1 ;}
 
 aurinstall() { \
 	dialog --backtitle "Arch Linux Installation" --title "Installing from the AUR" --infobox "Installing \`$1\` ($n of $total) from the AUR. $1 $2" 5 70
 	echo "$aurinstalled" | grep -q "^$1$" && return 1
-	sudo -u "$name" $aurhelper -S --noconfirm "$1" >/var/log/larbs.sh.log 2>&1
+	sudo -u "$name" $aurhelper -S --noconfirm "$1" >>/var/log/larbs.sh.log 2>&1
 	}
 
 pipinstall() { \
 	dialog --backtitle "Arch Linux Installation" --title "Installing from Python Pip" --infobox "Installing the Python package \`$1\` ($n of $total). $1 $2" 5 70
-	[ -x "$(command -v "pip")" ] || installpkg python-pip >/var/log/larbs.sh.log 2>&1
+	[ -x "$(command -v "pip")" ] || installpkg python-pip >>/var/log/larbs.sh.log 2>&1
 	yes | pip install "$1"
 	}
 
@@ -144,32 +145,47 @@ putgitrepo() { # Downloads a gitrepo $1 and places the files in $2 only overwrit
 	dir=$(mktemp -d)
 	[ ! -d "$2" ] && mkdir -p "$2"
 	chown "$name":wheel "$dir" "$2"
-	sudo -u "$name" git clone --recursive -b "$branch" --depth 1 --recurse-submodules "$1" "$dir" >/var/log/larbs.sh.log 2>&1
+	sudo -u "$name" git clone --recursive -b "$branch" --depth 1 --recurse-submodules "$1" "$dir" >>/var/log/larbs.sh.log 2>&1
 	sudo -u "$name" cp -rfT "$dir" "$2"
 	}
 
 fishinstall() { \
 	dialog --backtitle "Arch Linux Installation" --title "Configuring Fish" --infobox "Configuring the Fish shell to look pretty." 5 70
-	# curl -fsSL -o "/home/$name/oh-my-fish.fish" "https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install" >/var/log/larbs.sh.log
-	# chmod +rx "/home/$name/oh-my-fish.fish" >/var/log/larbs.sh.log 2>&1
-	# /home/$name/oh-my-fish.fish --noninteractive --yes >/var/log/larbs.sh.log 2>&1
-	# omf install https://github.com/danielgleonard/theme-ansilambda.git >/var/log/larbs.sh.log 2>&1
-	# rm ~/.config/fish/functions/fish_prompt.fish >/var/log/larbs.sh.log 2>&1
-	# omf theme ansilambda >/var/log/larbs.sh.log 2>&1
-	# sudo -u "$name" "/usr/bin/env /home/$name/oh-my-fish.fish --noninteractive --yes" >/var/log/larbs.sh.log 2>&1
-	# sudo -u "$name" "omf install https://github.com/danielgleonard/theme-ansilambda.git" >/var/log/larbs.sh.log 2>&1
-	# rm "/home/$name/.config/fish/functions/fish_prompt.fish" >/var/log/larbs.sh.log 2>&1
-	# sudo -u "$name" "omf theme ansilambda" >/var/log/larbs.sh.log 2>&1
-	# rm /home/$name/oh-my-fish.fish >/var/log/larbs.sh.log 2>&1
+	# curl -fsSL -o "/home/$name/oh-my-fish.fish" "https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install" >>/var/log/larbs.sh.log
+	# chmod +rx "/home/$name/oh-my-fish.fish" >>/var/log/larbs.sh.log 2>&1
+	# /home/$name/oh-my-fish.fish --noninteractive --yes >>/var/log/larbs.sh.log 2>&1
+	# omf install https://github.com/danielgleonard/theme-ansilambda.git >>/var/log/larbs.sh.log 2>&1
+	# rm ~/.config/fish/functions/fish_prompt.fish >>/var/log/larbs.sh.log 2>&1
+	# omf theme ansilambda >>/var/log/larbs.sh.log 2>&1
+	# sudo -u "$name" "/usr/bin/env /home/$name/oh-my-fish.fish --noninteractive --yes" >>/var/log/larbs.sh.log 2>&1
+	# sudo -u "$name" "omf install https://github.com/danielgleonard/theme-ansilambda.git" >>/var/log/larbs.sh.log 2>&1
+	# rm "/home/$name/.config/fish/functions/fish_prompt.fish" >>/var/log/larbs.sh.log 2>&1
+	# sudo -u "$name" "omf theme ansilambda" >>/var/log/larbs.sh.log 2>&1
+	# rm /home/$name/oh-my-fish.fish >>/var/log/larbs.sh.log 2>&1
 
-	sed -i "s/\$HOME/\/home\/$name/g" "/home/$name/.config/fish/fish_variables"
+	sed -i "s/\$HOME/\/home\/$name/g" "/home/$name/.config/fish/fish_variables" >>/var/log/larbs.sh.log 2>&1
 	
-	sed -i "s/\$HOME/\/root/g" /root/.config/fish/fish_variables
+	sed -i "s/\$HOME/\/root/g" /root/.config/fish/fish_variables >>/var/log/larbs.sh.log 2>&1
 	
 	dialog --backtitle "Arch Linux Installation" --title "Configuring Fish" --infobox "Generating autocompletions in Fish." 5 70
-	fish_update_completions >/var/log/larbs.sh.log 2>&1
-	sudo -u "$name" fish_update_completions >/var/log/larbs.sh.log 2>&1
+	fish_update_completions >>/var/log/larbs.sh.log 2>&1
+	sudo -u "$name" fish_update_completions >>/var/log/larbs.sh.log 2>&1
 	}
+	
+sshd_configure() {
+	dialog --title "sshd settings" --backtitle "Dan's Nginx Setup" --msgbox "Configuring sshd to disable passwords and require public key authentication." 7 70
+	systemctl start sshd.service >>/var/log/larbs.sh.log 2>&1
+	sleep 5 >>/var/log/larbs.sh.log 2>&1
+	systemctl stop sshd.service >>/var/log/larbs.sh.log 2>&1
+	sleep 5 >>/var/log/larbs.sh.log 2>&1
+	sed "s/PubkeyAuthentication no/PubkeyAuthentication yes/g" -i /etc/ssh/sshd_config >>/var/log/larbs.sh.log 2>&1
+	sed "s/PasswordAuthentication yes/PasswordAuthentication no/g" -i /etc/ssh/sshd_config >>/var/log/larbs.sh.log 2>&1
+	sed "s/ChallengeResponseAuthentication yes/ChallengeResponseAuthentication no/g" -i /etc/ssh/sshd_config >>/var/log/larbs.sh.log 2>&1
+	sed "/PubkeyAuthentication yes/s/^#//" -i /etc/ssh/sshd_config >>/var/log/larbs.sh.log 2>&1
+	sed "/PasswordAuthentication no/s/^#//" -i /etc/ssh/sshd_config >>/var/log/larbs.sh.log 2>&1
+	sed "/ChallengeResponseAuthentication no/s/^#//" -i /etc/ssh/sshd_config >>/var/log/larbs.sh.log 2>&1
+	systemctl start sshd.service >>/var/log/larbs.sh.log 2>&1
+}
 
 systembeepoff() { dialog --infobox "Getting rid of that retarded error beep sound..." 10 50
 	rmmod pcspkr
@@ -210,7 +226,7 @@ for x in curl ca-certificates base-devel git ntp zsh ; do
 done
 
 dialog --backtitle "Arch Linux Installation" --title "Time" --infobox "Synchronizing system time to ensure successful and secure installation of software..." 4 70
-ntpdate ntp.illinois.edu >/var/log/larbs.sh.log 2>&1
+ntpdate ntp.illinois.edu >>/var/log/larbs.sh.log 2>&1
 
 adduserandpass || error "Error adding username and/or password."
 
@@ -236,7 +252,7 @@ manualinstall yay-bin || error "Failed to install AUR helper."
 installationloop
 
 dialog --backtitle "Arch Linux Installation" --title "Emoji" --infobox "Finally, installing \`libxft-bgra\` to enable color emoji in suckless software without crashes." 5 70
-yes | sudo -u "$name" $aurhelper -S libxft-bgra-git >/var/log/larbs.sh.log 2>&1
+yes | sudo -u "$name" $aurhelper -S libxft-bgra-git >>/var/log/larbs.sh.log 2>&1
 
 # Install the dotfiles in the user's home directory
 putgitrepo "$dotfilesrepo" "/home/$name" "$repobranch"
@@ -258,8 +274,8 @@ fishinstall
 systembeepoff
 
 # Make zsh the default shell for the user.
-chsh -s /usr/bin/fish "$name" >/var/log/larbs.sh.log 2>&1
-chsh -s /usr/bin/fish >/var/log/larbs.sh.log 2>&1
+chsh -s /usr/bin/fish "$name" >>/var/log/larbs.sh.log 2>&1
+chsh -s /usr/bin/fish >>/var/log/larbs.sh.log 2>&1
 sudo -u "$name" mkdir -p "/home/$name/.cache/zsh/"
 
 # dbus UUID must be generated for Artix runit.

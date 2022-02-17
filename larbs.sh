@@ -227,6 +227,8 @@ done
 
 dialog --backtitle "Arch Linux Installation" --title "Time" --infobox "Synchronizing system time to ensure successful and secure installation of software..." 4 70
 ntpdate ntp.illinois.edu >>/var/log/larbs.sh.log 2>&1
+hwclock --systohc >>/var/log/larbs.sh.log 2>&1
+timedatectl set-timezone America/Chicago >>/var/log/larbs.sh.log 2>&1
 
 adduserandpass || error "Error adding username and/or password."
 

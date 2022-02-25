@@ -152,7 +152,7 @@ putgitrepo() { # Downloads a gitrepo $1 and places the files in $2 only overwrit
 		sudo -u "$name" cp -rfT "$dir" "$2" >>/var/log/larbs.sh.log 2>&1
 	}
 
-putgitreporoot() {# Downloads a gitrepo $1 and places the files in $2 only overwriting conflicts
+putgitreporoot() { # Downloads a gitrepo $1 and places the files in $2 only overwriting conflicts
 		dialog --backtitle "Arch Linux Installation" --infobox "Downloading and installing config files..." 4 60
 		[ -z "$3" ] && branch="master" || branch="$repobranch"
 		dir=$(mktemp -d)

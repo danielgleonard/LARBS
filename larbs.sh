@@ -149,7 +149,12 @@ putgitrepo() { # Downloads a gitrepo $1 and places the files in $2 only overwrit
 		sudo -u "$name" git --git-dir="$dir/.dotfiles" config --local status.showUntrackedFiles >>/var/log/larbs.sh.log 2>&1
 		sudo -u "$name" git --git-dir="$dir/.dotfiles" --work-tree="$dir" checkout master >>/var/log/larbs.sh.log 2>&1
 		sudo -u "$name" git --git-dir="$dir/.dotfiles" --work-tree="$dir" submodule update --init --recursive >>/var/log/larbs.sh.log 2>&1
+		ls -la "$dir" >>/var/log/larbs.sh.log 2>&1
+		ls -la "$dir/.dotfiles" >>/var/log/larbs.sh.log 2>&1
+		cd "$dir/.dotfiles"
+		sudo -u "$name" git --git-dir="$dir/.dotfiles" --work-tree="$dir" submodule update --remote --recursive >>/var/log/larbs.sh.log 2>&1
 		sudo -u "$name" cp -rfT "$dir" "$2" >>/var/log/larbs.sh.log 2>&1
+		cd "/root"
 	}
 
 putgitreporoot() { # Downloads a gitrepo $1 and places the files in $2 only overwriting conflicts
@@ -161,7 +166,12 @@ putgitreporoot() { # Downloads a gitrepo $1 and places the files in $2 only over
 		git --git-dir="$dir/.dotfiles" config --local status.showUntrackedFiles >>/var/log/larbs.sh.log 2>&1
 		git --git-dir="$dir/.dotfiles" --work-tree="$dir" checkout master >>/var/log/larbs.sh.log 2>&1
 		git --git-dir="$dir/.dotfiles" --work-tree="$dir" submodule update --init --recursive >>/var/log/larbs.sh.log 2>&1
+		ls -la "$dir" >>/var/log/larbs.sh.log 2>&1
+		ls -la "$dir/.dotfiles" >>/var/log/larbs.sh.log 2>&1
+		cd "$dir/.dotfiles"
+		git --git-dir="$dir/.dotfiles" --work-tree="$dir" submodule update --remote --recursive >>/var/log/larbs.sh.log 2>&1
 		cp -rfT "$dir" "$2" >>/var/log/larbs.sh.log 2>&1
+		cd "/root"
 	}
 
 fishinstall() { \
